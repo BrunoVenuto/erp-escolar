@@ -1,0 +1,21 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    function signedIn() { return request.auth != null; }
+    
+    // Alunos e seus documentos
+    match /documents/{studentId}/{allPaths=**} {
+      // Secretaria, Direção e Admin podem ler/escrever
+      // Professores podem ler se necessário (conforme Custom Claims futuramente)
+      allow read, write: if signedIn();
+    }
+    
+    // Relatórios e Boletins
+    match /reports/{allPaths=**} {
+      allow read: if signedIn();
+      allow write: if false; // Gerados apenas via Admin/Function
+    }
+  }
+}

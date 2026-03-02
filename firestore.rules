@@ -1,0 +1,28 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    
+    // TEMPORARY: Simplified isAdmin
+    function isAdmin() { 
+      return signedIn(); // For debugging, allow all signed-in users for now
+    }
+
+    // ✅ Perfil do usuário
+    match /users/{uid} {
+      allow read, write: if signedIn();
+    }
+
+    // ✅ Outras coleções
+    match /{collection}/{id} {
+      allow read, write: if signedIn();
+    }
+
+    // fallback
+    match /{document=**} {
+      allow read, write: if signedIn();
+    }
+  }
+}
