@@ -17,7 +17,8 @@ export type AuditAction =
     | "GRADE_UPDATE"
     | "ATTENDANCE_SAVE"
     | "DOC_UPLOAD"
-    | "USER_ROLE_CHANGE";
+    | "USER_ROLE_CHANGE"
+    | "STUDENT_IMPORT_BATCH";
 
 interface AuditLog {
     action: AuditAction;

@@ -70,7 +70,7 @@ export default function NewStudentPage() {
                                 <Input label="Nome Completo" name="name" placeholder="Ex: João da Silva" required />
                                 <div className="grid grid-cols-2 gap-4">
                                     <Input label="E-mail" name="email" type="email" placeholder="aluno@escola.br" />
-                                    <Input label="Matrícula" name="enrollmentNumber" placeholder="2024001" />
+                                    <Input label="Matrícula" name="enrollmentNumber" placeholder="2026001" />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <Input label="Data de Nascimento" name="birthDate" type="date" />

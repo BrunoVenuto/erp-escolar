@@ -4,6 +4,7 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { useState } from "react";
 import { auth } from "@/lib/firebase/client";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,7 +23,7 @@ export default function LoginPage() {
       router.push("/app");
     } catch (err: any) {
       console.error("Login Error:", err);
-      
+
       // Mapeamento de erros comuns do Firebase
       switch (err.code) {
         case "auth/invalid-credential":
@@ -83,12 +84,21 @@ export default function LoginPage() {
           </div>
         )}
 
-        <button 
+        <button
           disabled={loading}
           className="bg-black text-white w-full py-2 rounded font-medium hover:bg-zinc-800 transition-colors disabled:bg-zinc-400"
         >
           {loading ? "Entrando..." : "Entrar"}
         </button>
+
+        <div className="text-center pt-2">
+          <p className="text-sm text-slate-500">
+            Não tem uma conta?{" "}
+            <Link href="/register" className="text-blue-600 font-semibold hover:underline">
+              Primeiro Acesso
+            </Link>
+          </p>
+        </div>
       </form>
     </main>
   );

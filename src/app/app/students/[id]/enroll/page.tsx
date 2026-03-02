@@ -48,7 +48,7 @@ export default function EnrollmentPage({ params }: { params: Promise<{ id: strin
             await setDoc(doc(db, "enrollments", `${unwrappedParams.id}_${selectedClassId}`), {
                 studentId: unwrappedParams.id,
                 classId: selectedClassId,
-                academicYear: 2024,
+                academicYear: 2026,
                 status: 'active',
                 documents: documents, // Kept documents field
                 enrolledAt: serverTimestamp(),
@@ -118,7 +118,7 @@ export default function EnrollmentPage({ params }: { params: Promise<{ id: strin
                                 >
                                     <div>
                                         <p className="font-bold text-slate-800">{cls.name}</p>
-                                        <p className="text-xs text-slate-500 uppercase tracking-tighter">{cls.shift === 'morning' ? 'Manhã' : 'Tarde'} • {cls.yearId || '2024'}</p>
+                                        <p className="text-xs text-slate-500 uppercase tracking-tighter">{cls.shift === 'morning' ? 'Manhã' : 'Tarde'} • {cls.yearId || '2026'}</p>
                                     </div>
                                     {selectedClassId === cls.id && <Check className="w-5 h-5 text-primary" />}
                                 </button>

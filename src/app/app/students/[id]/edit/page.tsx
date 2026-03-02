@@ -138,7 +138,7 @@ export default function EditStudentPage({ params }: { params: Promise<{ id: stri
                                         label="Matrícula"
                                         name="enrollmentNumber"
                                         defaultValue={studentData?.enrollmentNumber}
-                                        placeholder="2024001"
+                                        placeholder="2026001"
                                     />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">

@@ -33,6 +33,7 @@ const navItems: NavItem[] = [
     { label: "Calendário", href: "/app/calendar", icon: Calendar, roles: ["admin", "direcao", "secretaria", "professor", "responsavel"] },
     { label: "Documentos", href: "/app/documents", icon: FileText, roles: ["admin", "direcao", "secretaria"] },
     { label: "Auditoria", href: "/app/admin/audit", icon: ShieldAlert, roles: ["admin"] },
+    { label: "Usuários", href: "/app/admin/users", icon: Users, roles: ["admin"] },
     { label: "Configurações", href: "/app/settings", icon: Settings, roles: ["admin"] },
 ];
 

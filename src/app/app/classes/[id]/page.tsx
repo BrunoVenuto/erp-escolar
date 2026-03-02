@@ -22,6 +22,7 @@ import {
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import { logAudit } from "@/lib/utils/audit-logger";
+import { StudentImport } from "@/components/features/StudentImport";
 
 export default function ClassDetailsPage({ params }: { params: Promise<{ id: string }> }) {
     const unwrappedParams = use(params);
@@ -31,6 +32,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
     const [students, setStudents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [deleting, setDeleting] = useState(false);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     useEffect(() => {
         async function loadData() {
@@ -63,7 +65,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
             }
         }
         loadData();
-    }, [unwrappedParams.id]);
+    }, [unwrappedParams.id, refreshTrigger]);
 
     async function handleDelete() {
         if (!confirm(`Tem certeza que deseja EXCLUIR a turma ${schoolClass?.name}?\n\nIsso NÃO removerá os alunos do sistema, mas as enturmações desta turma serão perdidas.`)) return;
@@ -145,8 +147,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
                                 <Badge variant="info">{schoolClass.shift}</Badge>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="text-sm text-slate-500">Ano Letivo</span>
-                                <span className="text-sm font-semibold">{schoolClass.yearId || '2024'}</span>
+                                <span className="text-sm font-semibold">{schoolClass.yearId || '2026'}</span>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="text-sm text-slate-500">Total de Alunos</span>
@@ -177,7 +178,14 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
                                 <Users className="w-5 h-5 text-primary" />
                                 Lista de Alunos
                             </CardTitle>
-                            <Button size="sm" className="text-xs h-8">Enturmar Aluno</Button>
+                            <div className="flex items-center gap-2">
+                                <StudentImport
+                                    classId={unwrappedParams.id}
+                                    className={schoolClass.name}
+                                    onComplete={() => setRefreshTrigger(prev => prev + 1)}
+                                />
+                                <Button size="sm" className="text-xs h-8">Enturmar Aluno</Button>
+                            </div>
                         </CardHeader>
                         <div className="divide-y divide-slate-100">
                             {students.length === 0 ? (

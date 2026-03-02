@@ -151,7 +151,7 @@ export default function StudentReportCardPage({ params }: { params: Promise<{ id
                             <h2 className="text-2xl font-bold text-slate-800 print:text-xl">{student?.name}</h2>
                             <p className="text-sm text-slate-500 font-medium">Matrícula: {student?.enrollmentNumber || 'N/A'}</p>
                             <div className="mt-1 flex gap-2 no-print">
-                                <Badge variant="info">Ano Letivo 2024</Badge>
+                                <Badge variant="info">Ano Letivo 2026</Badge>
                                 <Badge variant="success">Frequente</Badge>
                             </div>
                         </div>

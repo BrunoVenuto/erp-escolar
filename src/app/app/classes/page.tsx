@@ -83,10 +83,12 @@ export default function ClassesPage() {
                     <h1 className="text-2xl font-bold text-slate-800">Turmas</h1>
                     <p className="text-sm text-slate-500">Gestão de turmas e enturmação de alunos.</p>
                 </div>
-                <Button className="gap-2">
-                    <Plus className="w-4 h-4" />
-                    Nova Turma
-                </Button>
+                <Link href="/app/classes/new">
+                    <Button className="gap-2">
+                        <Plus className="w-4 h-4" />
+                        Nova Turma
+                    </Button>
+                </Link>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -121,7 +123,7 @@ export default function ClassesPage() {
 
                                 <div className="flex items-center justify-between pt-4 border-t border-slate-50">
                                     <div className="flex gap-2">
-                                        <Badge variant="info">{cls.yearId || "2024"}</Badge>
+                                        <Badge variant="info">{cls.yearId || "2026"}</Badge>
                                         <Button
                                             variant="ghost"
                                             size="sm"
