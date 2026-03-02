@@ -4,7 +4,6 @@ import { useState } from "react";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { storage } from "@/lib/firebase/client";
 import { Button } from "./Button";
-import { Progress } from "./Progress"; // We'll create this next
 import { Upload, CheckCircle, AlertCircle, FileText } from "lucide-react";
 
 interface FileUploaderProps {
