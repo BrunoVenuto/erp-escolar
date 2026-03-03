@@ -22,7 +22,8 @@ import {
     Users,
     CheckCircle,
     XCircle,
-    Clock
+    Clock,
+    FileText
 } from "lucide-react";
 import Link from "next/link";
 
@@ -38,6 +39,7 @@ type AttendanceStats = {
 export default function AttendanceReportPage({ params }: { params: Promise<{ classSubjectId: string }> }) {
     const unwrappedParams = use(params);
     const [stats, setStats] = useState<AttendanceStats[]>([]);
+    const [lessons, setLessons] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [classSubject, setClassSubject] = useState<any>(null);
 
@@ -99,6 +101,12 @@ export default function AttendanceReportPage({ params }: { params: Promise<{ cla
                 }));
 
                 setStats(studentStats.sort((a, b) => a.name.localeCompare(b.name)));
+
+                // Load Lessons
+                const lessonsSnap = await getDocs(
+                    query(collection(db, "lessons"), where("classSubjectId", "==", unwrappedParams.classSubjectId), orderBy("date", "desc"))
+                );
+                setLessons(lessonsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
             } catch (err) {
                 console.error(err);
             } finally {
@@ -188,6 +196,35 @@ export default function AttendanceReportPage({ params }: { params: Promise<{ cla
                         </tbody>
                     </table>
                 </div>
+            </Card>
+
+            <Card className="print:shadow-none print:border-none">
+                <CardHeader className="bg-slate-50 border-b border-slate-100 flex flex-row items-center gap-2">
+                    <FileText className="w-5 h-5 text-primary" />
+                    <CardTitle className="text-lg">Histórico de Conteúdos (Aulas)</CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <div className="divide-y divide-slate-100">
+                        {lessons.length === 0 ? (
+                            <div className="p-8 text-center text-sm text-slate-500 italic">
+                                Nenhum conteúdo registrado para esta disciplina ainda.
+                            </div>
+                        ) : (
+                            lessons.map((lesson) => (
+                                <div key={lesson.id} className="p-6 space-y-2 hover:bg-slate-50/50 transition-colors">
+                                    <div className="flex items-center justify-between">
+                                        <Badge variant="neutral" className="text-[10px] font-mono tracking-tight bg-white">
+                                            {new Date(lesson.date + 'T00:00:00').toLocaleDateString('pt-BR')}
+                                        </Badge>
+                                    </div>
+                                    <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap font-medium">
+                                        {lesson.content}
+                                    </p>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </CardContent>
             </Card>
 
             <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl flex items-start gap-4 no-print">

@@ -7,7 +7,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { ClipboardCheck, BookOpen, Clock, Users, ArrowRight } from "lucide-react";
+import { ClipboardCheck, BookOpen, Clock, Users, ArrowRight, FileText } from "lucide-react";
 import Link from "next/link";
 
 type ClassSubject = {
@@ -111,11 +111,16 @@ export default function AttendanceDashboardPage() {
                                     </div>
                                 </div>
 
-                                <div className="pt-4 border-t border-slate-50">
-                                    <Link href={`/app/attendance/${cs.id}`}>
+                                <div className="pt-4 border-t border-slate-50 flex gap-2">
+                                    <Link href={`/app/attendance/${cs.id}`} className="flex-1">
                                         <Button className="w-full gap-2 group">
                                             Iniciar Chamada
                                             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                        </Button>
+                                    </Link>
+                                    <Link href={`/app/attendance/${cs.id}/report`}>
+                                        <Button variant="ghost" className="aspect-square p-0" title="Ver Relatório">
+                                            <FileText className="w-4 h-4" />
                                         </Button>
                                     </Link>
                                 </div>
