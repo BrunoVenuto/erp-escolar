@@ -12,10 +12,14 @@ import { FileUploader } from "@/components/ui/FileUploader";
 import { ArrowLeft, Check, GraduationCap, FileCheck, Landmark } from "lucide-react";
 import Link from "next/link";
 
-export default function EnrollmentPage({ params }: { params: Promise<{ id: string }> }) {
+export default function EnrollmentPage({ params, searchParams }: {
+    params: Promise<{ id: string }>,
+    searchParams: Promise<{ classId?: string }>
+}) {
     const unwrappedParams = use(params);
+    const { classId } = use(searchParams);
     const router = useRouter();
-    const { profile } = useAuth(); // Added useAuth hook
+    const { profile } = useAuth();
     const [student, setStudent] = useState<any>(null);
     const [classes, setClasses] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -27,32 +31,61 @@ export default function EnrollmentPage({ params }: { params: Promise<{ id: strin
         async function load() {
             try {
                 const sSnap = await getDoc(doc(db, "students", unwrappedParams.id));
-                if (sSnap.exists()) setStudent({ id: sSnap.id, ...sSnap.data() });
+                if (sSnap.exists()) {
+                    setStudent({ id: sSnap.id, ...sSnap.data() });
+                } else {
+                    alert("Aluno não encontrado.");
+                    router.push("/app/students");
+                }
 
                 const cSnap = await getDocs(collection(db, "classes"));
-                setClasses(cSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+                const classesData = cSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                setClasses(classesData);
+
+                if (classId) {
+                    setSelectedClassId(classId);
+                }
             } catch (err) {
                 console.error(err);
+                alert("Erro ao carregar dados. Verifique sua conexão.");
             } finally {
                 setLoading(false);
             }
         }
         load();
-    }, [unwrappedParams.id]);
+    }, [unwrappedParams.id, classId, router]);
 
     async function handleFinish() {
-        if (!selectedClassId) return;
+        if (!selectedClassId) {
+            alert("Por favor, selecione uma turma.");
+            return;
+        }
+
         setLoading(true);
         try {
-            const cls = classes.find(c => c.id === selectedClassId);
-            await setDoc(doc(db, "enrollments", `${unwrappedParams.id}_${selectedClassId}`), {
+            const enrollmentId = `${unwrappedParams.id}_${selectedClassId}`;
+
+            // Check if already enrolled
+            const existingSnap = await getDoc(doc(db, "enrollments", enrollmentId));
+            if (existingSnap.exists() && existingSnap.data()?.status === 'active') {
+                alert("Este aluno já está matriculado nesta turma.");
+                setLoading(false);
+                return;
+            }
+
+            await setDoc(doc(db, "enrollments", enrollmentId), {
                 studentId: unwrappedParams.id,
                 classId: selectedClassId,
                 academicYear: 2026,
                 status: 'active',
-                documents: documents, // Kept documents field
+                documents: documents,
                 enrolledAt: serverTimestamp(),
             });
+
+            // Update student status if needed
+            await setDoc(doc(db, "students", unwrappedParams.id), {
+                status: "active"
+            }, { merge: true });
 
             // Log Audit
             await logAudit({
@@ -60,13 +93,14 @@ export default function EnrollmentPage({ params }: { params: Promise<{ id: strin
                 userId: profile?.uid || "unknown",
                 userName: profile?.name || "Sistema",
                 targetId: unwrappedParams.id,
-                details: `Aluno matriculado na turma com ID ${selectedClassId}.`
+                details: `Aluno ${student?.name} matriculado na turma com ID ${selectedClassId}.`
             });
 
             alert("Matrícula realizada com sucesso!");
-            router.push(`/app/students`);
-        } catch (err) {
+            router.push(`/app/classes/${selectedClassId}`);
+        } catch (err: any) {
             console.error(err);
+            alert("Erro ao realizar matrícula: " + err.message);
         } finally {
             setLoading(false);
         }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { collection, query, getDocs, orderBy, where, deleteDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -20,8 +20,10 @@ type Student = {
     email?: string;
 };
 
-export default function StudentsPage() {
+export default function StudentsPage({ searchParams }: { searchParams: Promise<any> }) {
     const { profile } = useAuth();
+    const resolvedSearchParams = use(searchParams);
+    const classId = resolvedSearchParams?.classId;
     const [students, setStudents] = useState<Student[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
@@ -85,8 +87,12 @@ export default function StudentsPage() {
             {/* Header Actions */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-800">Alunos</h1>
-                    <p className="text-sm text-slate-500">Gerencie o cadastro e histórico dos estudantes.</p>
+                    <h1 className="text-2xl font-bold text-slate-800">
+                        {classId ? "Selecionar Aluno para Matrícula" : "Alunos"}
+                    </h1>
+                    <p className="text-sm text-slate-500">
+                        {classId ? "Selecione um aluno da lista para enturmar." : "Gerencie o cadastro e histórico dos estudantes."}
+                    </p>
                 </div>
                 <Link href="/app/students/new">
                     <Button className="gap-2">
@@ -184,6 +190,11 @@ export default function StudentsPage() {
                                             </Badge>
                                         </td>
                                         <td className="px-6 py-4 text-right flex items-center justify-end gap-2 text-xs">
+                                            <Link href={`/app/students/${student.id}/enroll${classId ? `?classId=${classId}` : ''}`}>
+                                                <Button variant="primary" size="sm" className="h-8 text-xs font-bold gap-1">
+                                                    Matricular
+                                                </Button>
+                                            </Link>
                                             <Link href={`/app/students/${student.id}/report-card`}>
                                                 <Button variant="ghost" size="sm" className="h-8 text-xs font-bold gap-1 text-primary">
                                                     Boletim

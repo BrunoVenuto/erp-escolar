@@ -184,7 +184,9 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
                                     className={schoolClass.name}
                                     onComplete={() => setRefreshTrigger(prev => prev + 1)}
                                 />
-                                <Button size="sm" className="text-xs h-8">Enturmar Aluno</Button>
+                                <Link href={`/app/students?classId=${unwrappedParams.id}`}>
+                                    <Button size="sm" className="text-xs h-8">Enturmar Aluno</Button>
+                                </Link>
                             </div>
                         </CardHeader>
                         <div className="divide-y divide-slate-100">
