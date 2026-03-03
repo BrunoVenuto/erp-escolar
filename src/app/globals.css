@@ -4,7 +4,7 @@
   /* Municipal Theme - Blue & White */
   --primary: #1d4ed8;
   --primary-foreground: #ffffff;
-  
+
   --secondary: #059669;
   --secondary-foreground: #ffffff;
 
@@ -30,6 +30,32 @@
   --radius: 0.5rem;
 }
 
+.dark {
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+
+  --secondary: #10b981;
+  --secondary-foreground: #ffffff;
+
+  --background: #0f172a;
+  --foreground: #f8fafc;
+
+  --card: #1e293b;
+  --card-foreground: #f8fafc;
+
+  --border: #334155;
+  --input: #334155;
+  --ring: #3b82f6;
+
+  --muted: #94a3b8;
+  --muted-foreground: #cbd5e1;
+
+  --accent: #1e293b;
+  --accent-foreground: #f8fafc;
+
+  --glass-bg: rgba(15, 23, 42, 0.7);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -40,6 +66,8 @@
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
@@ -48,16 +76,21 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Glassmorphism & Custom Effects */
 .glass {
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--glass-bg, rgba(255, 255, 255, 0.7));
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .sidebar-gradient {
   background: linear-gradient(180deg, #1e3a8a 0%, #1d4ed8 100%);
+}
+
+.dark .sidebar-gradient {
+  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
 }

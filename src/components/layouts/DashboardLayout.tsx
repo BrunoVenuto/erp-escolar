@@ -15,6 +15,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         if (!loading && !user) {
             router.push("/login");
         }
+
+        // Initialize Theme
+        const theme = localStorage.getItem("erp-theme") || "light";
+        if (theme === "dark") {
+            document.documentElement.classList.add("dark");
+        } else {
+            document.documentElement.classList.remove("dark");
+        }
     }, [user, loading, router]);
 
     if (loading) {
@@ -43,7 +51,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <div className="flex min-h-screen bg-slate-50">
+        <div id="app-root" className="flex min-h-screen bg-slate-50 transition-colors duration-300">
             <Sidebar />
             <div className="flex-1 flex flex-col">
                 <Topbar title={getPageTitle()} />
