@@ -23,6 +23,7 @@ import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import { logAudit } from "@/lib/utils/audit-logger";
 import { StudentImport } from "@/components/features/StudentImport";
+import { LinkTeacherModal } from "@/components/features/LinkTeacherModal";
 
 export default function ClassDetailsPage({ params }: { params: Promise<{ id: string }> }) {
     const unwrappedParams = use(params);
@@ -30,8 +31,10 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
     const { profile } = useAuth();
     const [schoolClass, setSchoolClass] = useState<any>(null);
     const [students, setStudents] = useState<any[]>([]);
+    const [classSubjects, setClassSubjects] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [deleting, setDeleting] = useState(false);
+    const [showLinkModal, setShowLinkModal] = useState(false);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     useEffect(() => {
@@ -58,6 +61,26 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
 
                 const studentsList = (await Promise.all(studentPromises)).filter(Boolean);
                 setStudents(studentsList);
+
+                // 4. Fetch linked Subjects and Teachers
+                const csSnap = await getDocs(
+                    query(collection(db, "classSubjects"), where("classId", "==", unwrappedParams.id))
+                );
+
+                const csList = await Promise.all(csSnap.docs.map(async (d) => {
+                    const data = d.data();
+                    const [sSnap, tSnap] = await Promise.all([
+                        getDoc(doc(db, "subjects", data.subjectId)),
+                        getDoc(doc(db, "users", data.teacherId))
+                    ]);
+                    return {
+                        id: d.id,
+                        subjectName: sSnap.exists() ? sSnap.data().name : "---",
+                        teacherName: tSnap.exists() ? tSnap.data().name : "---"
+                    };
+                }));
+                setClassSubjects(csList);
+
             } catch (err) {
                 console.error("Error loading class data:", err);
             } finally {
@@ -163,9 +186,23 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
                                 Disciplinas & Professores
                             </CardTitle>
                         </CardHeader>
-                        <CardContent>
-                            <p className="text-xs text-slate-400 italic">Nenhuma disciplina vinculada ainda.</p>
-                            <Button variant="outline" className="w-full mt-4 text-xs h-8">Vincular Professor</Button>
+                        <CardContent className="space-y-4">
+                            {classSubjects.length === 0 ? (
+                                <p className="text-xs text-slate-400 italic">Nenhuma disciplina vinculada ainda.</p>
+                            ) : (
+                                <div className="space-y-3">
+                                    {classSubjects.map(cs => (
+                                        <div key={cs.id} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                            <p className="text-xs font-black text-primary uppercase tracking-widest mb-1">{cs.subjectName}</p>
+                                            <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                                                <User className="w-3 h-3 text-slate-400" />
+                                                {cs.teacherName}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            <Button variant="outline" className="w-full mt-4 text-xs h-8" onClick={() => setShowLinkModal(true)}>Vincular Professor</Button>
                         </CardContent>
                     </Card>
                 </div>
@@ -214,6 +251,15 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
                     </Card>
                 </div>
             </div>
+
+            {showLinkModal && (
+                <LinkTeacherModal
+                    classId={unwrappedParams.id}
+                    className={schoolClass.name}
+                    onClose={() => setShowLinkModal(false)}
+                    onSuccess={() => setRefreshTrigger(prev => prev + 1)}
+                />
+            )}
         </div>
     );
 }
