@@ -28,6 +28,7 @@ const navItems: NavItem[] = [
     { label: "Início", href: "/app", icon: Home, roles: ["admin", "direcao", "secretaria", "professor", "responsavel"] },
     { label: "Alunos", href: "/app/students", icon: Users, roles: ["admin", "direcao", "secretaria"] },
     { label: "Turmas", href: "/app/classes", icon: GraduationCap, roles: ["admin", "direcao", "secretaria", "professor"] },
+    { label: "Disciplinas", href: "/app/admin/subjects", icon: BookOpen, roles: ["admin", "secretaria"] },
     { label: "Frequência", href: "/app/attendance", icon: ClipboardCheck, roles: ["admin", "professor"] },
     { label: "Avaliações", href: "/app/grades", icon: BookOpen, roles: ["admin", "professor"] },
     { label: "Calendário", href: "/app/calendar", icon: Calendar, roles: ["admin", "direcao", "secretaria", "professor", "responsavel"] },
