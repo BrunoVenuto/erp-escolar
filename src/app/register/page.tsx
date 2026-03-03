@@ -23,32 +23,29 @@ export default function RegisterPage() {
         setLoading(true);
 
         try {
-            // 1. Check if a profile exists for this email
-            const staffQuery = query(collection(db, "users"), where("email", "==", email.toLowerCase().trim()));
-            const staffSnap = await getDocs(staffQuery);
-
-            let role = "responsavel"; // Default role if no profile found
-            let profileId = null;
-
-            if (!staffSnap.empty) {
-                const profileData = staffSnap.docs[0].data();
-                role = profileData.role;
-                profileId = staffSnap.docs[0].id;
-            }
-
-            // 2. Create Auth Account
+            // 1. Create Auth Account First
+            // This ensures we have the necessary permissions for Firestore queries
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
+            // 2. Now check if a profile exists for this email
+            const staffQuery = query(collection(db, "users"), where("email", "==", email.toLowerCase().trim()));
+            const staffSnap = await getDocs(staffQuery);
+
+            let profileId = null;
+            let existingData = null;
+
+            if (!staffSnap.empty) {
+                // Find a profile that doesn't have a UID yet or matches this email
+                // We prefer profiles where UID is not the document ID yet
+                const matchingDoc = staffSnap.docs.find(d => d.id !== user.uid) || staffSnap.docs[0];
+                profileId = matchingDoc.id;
+                existingData = matchingDoc.data();
+            }
+
             // 3. Link or Create Firestore Profile
-            if (profileId) {
+            if (profileId && existingData) {
                 // Link existing pre-created profile to this UID
-                // In this system, we store the profile in 'users' with UID as document ID.
-                // If it was created by email, it might have a random ID. Let's consolidate.
-
-                const existingData = staffSnap.docs[0].data();
-
-                // Set the correct document (UID as ID)
                 await setDoc(doc(db, "users", user.uid), {
                     ...existingData,
                     uid: user.uid,
@@ -56,19 +53,17 @@ export default function RegisterPage() {
                     updatedAt: serverTimestamp()
                 });
 
-                // Delete the old placeholder doc if it had a different ID
-                if (profileId !== user.uid) {
-                    // (Optional but good) You might want to delete doc(db, "users", profileId)
-                    // but we'll leave it for now to avoid complexity.
-                }
+                // If the old profile had a different ID, we can optionally delete it
+                // but usually, it's safer to keep it for a while or mark it as migrated.
             } else {
                 // Create new basic profile
                 await setDoc(doc(db, "users", user.uid), {
                     name,
                     email: email.toLowerCase().trim(),
-                    role: "responsavel", // Only Responsáveis can self-register without pre-invite
+                    role: "responsavel", // Default for self-registration
                     status: "active",
                     createdAt: serverTimestamp(),
+                    uid: user.uid
                 });
             }
 
