@@ -27,19 +27,19 @@ export default function GradesDashboardPage() {
 
     useEffect(() => {
         async function fetchMyClasses() {
-            if (!profile?.teacherId && !isAdmin) {
-                setLoading(false);
-                return;
-            }
-
             try {
+                const effectiveTeacherId = profile?.teacherId || profile?.uid;
                 let q;
                 if (isAdmin) {
                     q = query(collection(db, "classSubjects"));
                 } else {
+                    if (!effectiveTeacherId) {
+                        setLoading(false);
+                        return;
+                    }
                     q = query(
                         collection(db, "classSubjects"),
-                        where("teacherId", "==", profile?.teacherId)
+                        where("teacherId", "==", effectiveTeacherId)
                     );
                 }
 

@@ -117,6 +117,8 @@ export default function AttendanceEntryPage({ params }: { params: Promise<{ clas
         }
 
         setSaving(true);
+        const effectiveTeacherId = profile?.teacherId || profile?.uid;
+
         try {
             const batch = writeBatch(db);
 
@@ -124,7 +126,7 @@ export default function AttendanceEntryPage({ params }: { params: Promise<{ clas
             batch.set(sessionRef, {
                 classSubjectId,
                 date,
-                teacherId: profile?.teacherId,
+                teacherId: effectiveTeacherId,
                 createdAt: serverTimestamp(),
             });
 
@@ -143,7 +145,7 @@ export default function AttendanceEntryPage({ params }: { params: Promise<{ clas
                 classSubjectId,
                 date,
                 content: lessonContent,
-                teacherId: profile?.teacherId,
+                teacherId: effectiveTeacherId,
                 createdAt: serverTimestamp(),
             });
 

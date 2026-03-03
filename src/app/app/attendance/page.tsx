@@ -27,15 +27,19 @@ export default function AttendanceDashboardPage() {
 
     useEffect(() => {
         async function fetchMyClasses() {
-            if (!profile?.teacherId) {
+            // Use profile.uid as fallback if teacherId is missing (common for new teachers)
+            const effectiveTeacherId = profile?.teacherId || profile?.uid;
+
+            if (!effectiveTeacherId) {
                 setLoading(false);
                 return;
             }
 
             try {
+                // Query by teacherId (which might be the UID)
                 const q = query(
                     collection(db, "classSubjects"),
-                    where("teacherId", "==", profile.teacherId)
+                    where("teacherId", "==", effectiveTeacherId)
                 );
                 const snap = await getDocs(q);
 
@@ -66,7 +70,7 @@ export default function AttendanceDashboardPage() {
             }
         }
         fetchMyClasses();
-    }, [profile?.teacherId]);
+    }, [profile?.teacherId, profile?.uid]);
 
     return (
         <div className="space-y-6">
