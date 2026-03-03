@@ -11,6 +11,7 @@ export type AuditAction =
     | "STUDENT_UPDATE"
     | "STUDENT_DELETE"
     | "STUDENT_ENROLL"
+    | "STUDENT_UNENROLL"
     | "CLASS_CREATE"
     | "CLASS_UPDATE"
     | "CLASS_DELETE"

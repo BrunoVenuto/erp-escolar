@@ -24,7 +24,6 @@ import {
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import { logAudit } from "@/lib/utils/audit-logger";
-import { StudentImport } from "@/components/features/StudentImport";
 import { LinkTeacherModal } from "@/components/features/LinkTeacherModal";
 
 export default function ClassDetailsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -54,12 +53,12 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
                 const enrSnap = await getDocs(
                     query(collection(db, "enrollments"), where("classId", "==", unwrappedParams.id))
                 );
-                const enrData = enrSnap.docs.map(d => d.data());
+                const enrData = enrSnap.docs.map(d => ({ enrollmentId: d.id, ...d.data() }));
 
                 // 3. Fetch Student details
-                const studentPromises = enrData.map(async (enr) => {
+                const studentPromises = enrData.map(async (enr: any) => {
                     const stSnap = await getDoc(doc(db, "students", enr.studentId));
-                    return stSnap.exists() ? { id: stSnap.id, ...stSnap.data() } : null;
+                    return stSnap.exists() ? { id: stSnap.id, enrollmentId: enr.enrollmentId, ...stSnap.data() } : null;
                 });
 
                 const studentsList = (await Promise.all(studentPromises)).filter(Boolean);
@@ -104,6 +103,27 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
             alert("Erro ao remover vínculo.");
         } finally {
             setDeletingLink(null);
+        }
+    }
+
+    async function handleRemoveStudent(enrollmentId: string, studentId: string, studentName: string) {
+        if (!confirm(`Remover o aluno ${studentName} desta turma?`)) return;
+
+        try {
+            await deleteDoc(doc(db, "enrollments", enrollmentId));
+
+            await logAudit({
+                action: "STUDENT_UNENROLL",
+                userId: profile?.uid || "unknown",
+                userName: profile?.name || "Sistema",
+                targetId: unwrappedParams.id,
+                details: `Aluno ${studentName} (${studentId}) removido da turma ${schoolClass?.name}.`
+            });
+
+            setRefreshTrigger(prev => prev + 1);
+        } catch (err) {
+            console.error("Error removing student:", err);
+            alert("Erro ao remover aluno.");
         }
     }
 
@@ -242,11 +262,6 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
                                 Lista de Alunos
                             </CardTitle>
                             <div className="flex items-center gap-2">
-                                <StudentImport
-                                    classId={unwrappedParams.id}
-                                    className={schoolClass.name}
-                                    onComplete={() => setRefreshTrigger(prev => prev + 1)}
-                                />
                                 <Link href={`/app/students?classId=${unwrappedParams.id}`}>
                                     <Button size="sm" className="text-xs h-8">Enturmar Aluno</Button>
                                 </Link>
@@ -259,7 +274,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
                                 </div>
                             ) : (
                                 students.map((student) => (
-                                    <div key={student.id} className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors">
+                                    <div key={student.id} className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors group">
                                         <div className="flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 text-xs font-bold">
                                                 {student.name.substring(0, 2).toUpperCase()}
@@ -269,7 +284,16 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
                                                 <p className="text-[10px] text-slate-400">Matrícula: {student.enrollmentNumber || '---'}</p>
                                             </div>
                                         </div>
-                                        <Badge variant="success">Frequente</Badge>
+                                        <div className="flex items-center gap-3">
+                                            <Badge variant="success">Frequente</Badge>
+                                            <button
+                                                onClick={() => handleRemoveStudent(student.enrollmentId, student.id, student.name)}
+                                                className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                                                title="Remover da Turma"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                     </div>
                                 ))
                             )}

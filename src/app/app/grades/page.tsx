@@ -45,8 +45,14 @@ export default function GradesDashboardPage() {
 
                 const snap = await getDocs(q);
 
-                const data = await Promise.all(snap.docs.map(async (d) => {
+                const data = (await Promise.all(snap.docs.map(async (d) => {
                     const cs = { id: d.id, ...d.data() } as ClassSubject;
+
+                    if (!cs.classId || !cs.subjectId) {
+                        console.warn(`ClassSubject ${d.id} is missing classId or subjectId`);
+                        return null;
+                    }
+
                     const [clsSnap, subSnap] = await Promise.all([
                         getDoc(doc(db, "classes", cs.classId)),
                         getDoc(doc(db, "subjects", cs.subjectId))
@@ -60,7 +66,7 @@ export default function GradesDashboardPage() {
                         cs.subjectName = subSnap.data().name;
                     }
                     return cs;
-                }));
+                }))).filter(Boolean) as ClassSubject[];
 
                 setClassSubjects(data);
             } catch (err) {
