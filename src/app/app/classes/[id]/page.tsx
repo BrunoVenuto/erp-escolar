@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, use } from "react";
-import { doc, getDoc, collection, query, where, getDocs, deleteDoc } from "firebase/firestore";
+import { doc, getDoc, getDocs, deleteDoc, query, collection, where } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase/client";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
@@ -17,7 +17,9 @@ import {
     Clock,
     Pencil,
     Trash2,
-    Loader2
+    Loader2,
+    X,
+    Plus
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
@@ -36,6 +38,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
     const [deleting, setDeleting] = useState(false);
     const [showLinkModal, setShowLinkModal] = useState(false);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const [deletingLink, setDeletingLink] = useState<string | null>(null);
 
     useEffect(() => {
         async function loadData() {
@@ -89,6 +92,20 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
         }
         loadData();
     }, [unwrappedParams.id, refreshTrigger]);
+
+    async function handleDeleteLink(linkId: string) {
+        if (!confirm("Remover este vínculo de professor?")) return;
+        setDeletingLink(linkId);
+        try {
+            await deleteDoc(doc(db, "classSubjects", linkId));
+            setRefreshTrigger(prev => prev + 1);
+        } catch (err) {
+            console.error(err);
+            alert("Erro ao remover vínculo.");
+        } finally {
+            setDeletingLink(null);
+        }
+    }
 
     async function handleDelete() {
         if (!confirm(`Tem certeza que deseja EXCLUIR a turma ${schoolClass?.name}?\n\nIsso NÃO removerá os alunos do sistema, mas as enturmações desta turma serão perdidas.`)) return;
@@ -192,8 +209,17 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
                             ) : (
                                 <div className="space-y-3">
                                     {classSubjects.map(cs => (
-                                        <div key={cs.id} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                            <p className="text-xs font-black text-primary uppercase tracking-widest mb-1">{cs.subjectName}</p>
+                                        <div key={cs.id} className="p-3 bg-slate-50 rounded-xl border border-slate-100 group">
+                                            <div className="flex justify-between items-start mb-1">
+                                                <p className="text-xs font-black text-primary uppercase tracking-widest">{cs.subjectName}</p>
+                                                <button
+                                                    onClick={() => handleDeleteLink(cs.id)}
+                                                    disabled={deletingLink === cs.id}
+                                                    className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-500 transition-all disabled:opacity-50"
+                                                >
+                                                    <X className="w-3 h-3" />
+                                                </button>
+                                            </div>
                                             <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
                                                 <User className="w-3 h-3 text-slate-400" />
                                                 {cs.teacherName}
