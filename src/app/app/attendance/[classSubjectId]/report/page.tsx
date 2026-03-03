@@ -60,11 +60,23 @@ export default function AttendanceReportPage({ params }: { params: Promise<{ cla
                     subjectName: sSnap.exists() ? sSnap.data().name : "Disciplina"
                 });
 
-                // Load Sessions for this classSubject
-                const sessionsSnap = await getDocs(
-                    query(collection(db, "attendanceSessions"), where("classSubjectId", "==", unwrappedParams.classSubjectId), orderBy("date", "desc"))
-                );
-                const sessionIds = sessionsSnap.docs.map(d => d.id);
+                // Load Sessions for this classSubject with index fallback
+                let sessionIds: string[] = [];
+                try {
+                    const sessionsSnap = await getDocs(
+                        query(collection(db, "attendanceSessions"), where("classSubjectId", "==", unwrappedParams.classSubjectId), orderBy("date", "desc"))
+                    );
+                    sessionIds = sessionsSnap.docs.map(d => d.id);
+                } catch (sErr) {
+                    console.warn("Sessions query failed, falling back to simple query:", sErr);
+                    const simpleSnap = await getDocs(
+                        query(collection(db, "attendanceSessions"), where("classSubjectId", "==", unwrappedParams.classSubjectId))
+                    );
+                    sessionIds = simpleSnap.docs
+                        .map(d => ({ id: d.id, ...d.data() } as any))
+                        .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+                        .map(d => d.id);
+                }
 
                 // Load Enrolled Students
                 const enrSnap = await getDocs(
@@ -102,11 +114,22 @@ export default function AttendanceReportPage({ params }: { params: Promise<{ cla
 
                 setStats(studentStats.sort((a, b) => a.name.localeCompare(b.name)));
 
-                // Load Lessons
-                const lessonsSnap = await getDocs(
-                    query(collection(db, "lessons"), where("classSubjectId", "==", unwrappedParams.classSubjectId), orderBy("date", "desc"))
-                );
-                setLessons(lessonsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+                // Load Lessons with fallback for missing indexes
+                try {
+                    const lessonsSnap = await getDocs(
+                        query(collection(db, "lessons"), where("classSubjectId", "==", unwrappedParams.classSubjectId), orderBy("date", "desc"))
+                    );
+                    setLessons(lessonsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+                } catch (idxErr) {
+                    console.warn("Lessons query with orderBy failed (likely missing index), falling back to simple query:", idxErr);
+                    const simpleSnap = await getDocs(
+                        query(collection(db, "lessons"), where("classSubjectId", "==", unwrappedParams.classSubjectId))
+                    );
+                    const sorted = simpleSnap.docs
+                        .map(d => ({ id: d.id, ...d.data() } as any))
+                        .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+                    setLessons(sorted);
+                }
             } catch (err) {
                 console.error(err);
             } finally {
@@ -214,7 +237,7 @@ export default function AttendanceReportPage({ params }: { params: Promise<{ cla
                                 <div key={lesson.id} className="p-6 space-y-2 hover:bg-slate-50/50 transition-colors">
                                     <div className="flex items-center justify-between">
                                         <Badge variant="neutral" className="text-[10px] font-mono tracking-tight bg-white">
-                                            {new Date(lesson.date + 'T00:00:00').toLocaleDateString('pt-BR')}
+                                            {lesson.date ? new Date(lesson.date + 'T12:00:00').toLocaleDateString('pt-BR') : '---'}
                                         </Badge>
                                     </div>
                                     <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap font-medium">
