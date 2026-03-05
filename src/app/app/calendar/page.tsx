@@ -12,8 +12,23 @@ import {
     Clock,
     MapPin,
     Filter,
-    Bell
+    Bell,
+    X,
+    Loader2
 } from "lucide-react";
+import { collection, getDocs, addDoc, query, orderBy, serverTimestamp, Timestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase/client";
+import { useAuth } from "@/components/AuthProvider";
+import { useEffect } from "react";
+
+type CalendarEvent = {
+    id: string;
+    title: string;
+    dateISO: string; // YYYY-MM-DD
+    time: string;
+    type: string;
+    color: string;
+};
 
 export default function CalendarPage() {
     const [viewDate, setViewDate] = useState(() => {
@@ -36,12 +51,70 @@ export default function CalendarPage() {
         setViewDate(new Date(d.getFullYear(), d.getMonth(), 1));
     };
 
-    const events = [
-        { id: 1, title: "Início do 1º Bimestre", date: "02 Mar", time: "07:30", type: "academic", color: "bg-blue-500" },
-        { id: 2, title: "Reunião de Pais e Mestres", date: "15 Mar", time: "18:00", type: "meeting", color: "bg-amber-500" },
-        { id: 3, title: "Feriado Municipal", date: "23 Mar", time: "Dia Todo", type: "holiday", color: "bg-rose-500" },
-        { id: 4, title: "Conselho de Classe", date: "28 Mar", time: "14:00", type: "internal", color: "bg-emerald-500" },
-    ];
+    const { profile, loading: authLoading } = useAuth();
+    const [events, setEvents] = useState<CalendarEvent[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [showModal, setShowModal] = useState(false);
+    const [saving, setSaving] = useState(false);
+
+    // Form state
+    const [title, setTitle] = useState("");
+    const [eventDate, setEventDate] = useState("");
+    const [time, setTime] = useState("");
+    const [type, setType] = useState("academic");
+
+    useEffect(() => {
+        fetchEvents();
+    }, []);
+
+    async function fetchEvents() {
+        setLoading(true);
+        try {
+            // Retrieve without orderBy to avoid any missing index issues
+            const snap = await getDocs(collection(db, "events"));
+            const fetched = snap.docs.map(d => ({ id: d.id, ...d.data() } as CalendarEvent));
+            fetched.sort((a, b) => (a.dateISO || "").localeCompare(b.dateISO || ""));
+            setEvents(fetched);
+        } catch (err) {
+            console.error(err);
+            alert("Erro ao carregar eventos " + String(err));
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    async function handleAddEvent(e: React.FormEvent) {
+        e.preventDefault();
+        setSaving(true);
+        try {
+            const colorMap: Record<string, string> = {
+                academic: "bg-blue-500",
+                meeting: "bg-amber-500",
+                holiday: "bg-rose-500",
+                internal: "bg-emerald-500",
+            };
+
+            await addDoc(collection(db, "events"), {
+                title,
+                dateISO: eventDate,
+                time: time || "Dia Todo",
+                type,
+                color: colorMap[type] || "bg-blue-500",
+                createdAt: serverTimestamp()
+            });
+            setShowModal(false);
+            setTitle("");
+            setEventDate("");
+            setTime("");
+            setType("academic");
+            fetchEvents();
+        } catch (err) {
+            console.error(err);
+            alert("Erro ao criar evento.");
+        } finally {
+            setSaving(false);
+        }
+    }
 
     const monthNames = [
         "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -96,10 +169,12 @@ export default function CalendarPage() {
                         <Filter className="w-4 h-4" />
                         Filtrar
                     </Button>
-                    <Button size="sm" className="gap-2">
-                        <Plus className="w-4 h-4" />
-                        Novo Evento
-                    </Button>
+                    {!authLoading && profile && ["admin", "direcao", "secretaria"].includes(profile.role?.toLowerCase() || "") && (
+                        <Button size="sm" className="gap-2" onClick={() => setShowModal(true)}>
+                            <Plus className="w-4 h-4" />
+                            Novo Evento
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -139,24 +214,23 @@ export default function CalendarPage() {
                                 today.getMonth() === dateObj.date.getMonth() &&
                                 today.getFullYear() === dateObj.date.getFullYear();
 
-                            // Demo events markers (only for March 2026 as in original demo)
-                            const showMeeting = dateObj.month === "current" && dateObj.day === 15 && dateObj.date.getMonth() === 2;
-                            const showHoliday = dateObj.month === "current" && dateObj.day === 23 && dateObj.date.getMonth() === 2;
+                            // Format date for matching with events (YYYY-MM-DD)
+                            const dtString = `${dateObj.date.getFullYear()}-${String(dateObj.date.getMonth() + 1).padStart(2, '0')}-${String(dateObj.day).padStart(2, '0')}`;
+                            const dayEvents = events.filter(e => e.dateISO && e.dateISO === dtString);
 
                             return (
                                 <div
                                     key={i}
                                     className={`border-r border-b border-slate-50 p-2 relative hover:bg-slate-50 transition-colors ${!isCurrentMonth ? "bg-slate-50/50" : ""}`}
                                 >
-                                    <span className={`text-xs font-bold ${isCurrentMonth ? "text-slate-700" : "text-slate-300"} ${isToday ? "bg-primary text-white w-6 h-6 flex items-center justify-center rounded-full" : ""}`}>
+                                    <span className={`text-xs font-bold ${isCurrentMonth ? "text-slate-700" : "text-slate-300"} ${isToday ? "bg-primary text-white w-6 h-6 flex items-center justify-center rounded-full mx-auto" : "flex justify-center"}`}>
                                         {dateObj.day}
                                     </span>
-                                    {showMeeting && (
-                                        <div className="mt-1 h-1 w-1 bg-amber-500 rounded-full mx-auto" />
-                                    )}
-                                    {showHoliday && (
-                                        <div className="mt-1 h-1 w-1 bg-rose-500 rounded-full mx-auto" />
-                                    )}
+                                    <div className="mt-1 flex flex-wrap justify-center gap-1">
+                                        {dayEvents.map(evt => (
+                                            <div key={evt.id} className={`h-1.5 w-1.5 rounded-full ${evt.color}`} title={evt.title} />
+                                        ))}
+                                    </div>
                                 </div>
                             );
                         })}
@@ -173,33 +247,48 @@ export default function CalendarPage() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            {events.map((event) => (
-                                <div key={event.id} className="group cursor-pointer">
-                                    <div className="flex items-start gap-3">
-                                        <div className={`w-10 h-10 rounded-xl ${event.color} bg-opacity-10 flex flex-col items-center justify-center text-center shrink-0`}>
-                                            <span className={`text-[10px] font-black uppercase ${event.color.replace('bg-', 'text-')}`}>
-                                                {event.date.split(' ')[1]}
-                                            </span>
-                                            <span className={`text-sm font-bold ${event.color.replace('bg-', 'text-')}`}>
-                                                {event.date.split(' ')[0]}
-                                            </span>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <p className="text-sm font-bold text-slate-800 group-hover:text-primary transition-colors">{event.title}</p>
-                                            <div className="flex items-center gap-3 text-[10px] font-medium text-slate-400">
-                                                <span className="flex items-center gap-1">
-                                                    <Clock className="w-3 h-3" />
-                                                    {event.time}
+                            {loading ? (
+                                <div className="flex justify-center py-4">
+                                    <Loader2 className="w-5 h-5 animate-spin text-slate-300" />
+                                </div>
+                            ) : events.length === 0 ? (
+                                <p className="text-sm text-slate-500 italic text-center py-4">Nenhum evento programado.</p>
+                            ) : events.slice(0, 5).map((event) => {
+                                // Extract DD MMM from YYYY-MM-DD safely
+                                const safeDateISO = event.dateISO || new Date().toISOString().split('T')[0];
+                                const parts = safeDateISO.split('-');
+                                const monthIndex = parts.length > 1 ? parseInt(parts[1], 10) - 1 : 0;
+                                const monthAbbr = monthNames[monthIndex]?.slice(0, 3) || "Jan";
+                                const day = parts.length > 2 ? parts[2] : "01";
+
+                                return (
+                                    <div key={event.id} className="group cursor-pointer">
+                                        <div className="flex items-start gap-3">
+                                            <div className={`w-10 h-10 rounded-xl ${event.color} bg-opacity-10 flex flex-col items-center justify-center text-center shrink-0`}>
+                                                <span className={`text-[10px] font-black uppercase ${event.color.replace('bg-', 'text-')}`}>
+                                                    {monthAbbr}
                                                 </span>
-                                                <span className="flex items-center gap-1">
-                                                    <MapPin className="w-3 h-3" />
-                                                    Escola
+                                                <span className={`text-sm font-bold ${event.color.replace('bg-', 'text-')}`}>
+                                                    {day}
                                                 </span>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-sm font-bold text-slate-800 group-hover:text-primary transition-colors line-clamp-1">{event.title}</p>
+                                                <div className="flex items-center gap-3 text-[10px] font-medium text-slate-400">
+                                                    <span className="flex items-center gap-1">
+                                                        <Clock className="w-3 h-3" />
+                                                        {event.time || "Dia todo"}
+                                                    </span>
+                                                    <span className="flex items-center gap-1">
+                                                        <MapPin className="w-3 h-3" />
+                                                        Escola
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                             <Button variant="ghost" className="w-full text-xs h-8 text-primary font-bold">Ver Todos</Button>
                         </CardContent>
                     </Card>
