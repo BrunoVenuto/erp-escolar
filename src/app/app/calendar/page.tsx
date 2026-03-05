@@ -51,7 +51,7 @@ export default function CalendarPage() {
         setViewDate(new Date(d.getFullYear(), d.getMonth(), 1));
     };
 
-    const { profile, loading: authLoading } = useAuth();
+    const { profile, loading: authLoading, isAdmin, isStaff } = useAuth();
     const [events, setEvents] = useState<CalendarEvent[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
@@ -169,7 +169,13 @@ export default function CalendarPage() {
                         <Filter className="w-4 h-4" />
                         Filtrar
                     </Button>
-                    {!authLoading && profile && ["admin", "direcao", "secretaria"].includes(profile.role?.toLowerCase() || "") && (
+                    {/* Debug: show current role */}
+                    {!authLoading && (
+                        <span className="text-[10px] font-mono bg-slate-100 px-2 py-1 rounded text-slate-500">
+                            role: {profile?.role ?? "(nulo)"}
+                        </span>
+                    )}
+                    {!authLoading && (isAdmin || (profile && ["direcao", "secretaria"].includes(profile.role?.toLowerCase() || ""))) && (
                         <Button size="sm" className="gap-2" onClick={() => setShowModal(true)}>
                             <Plus className="w-4 h-4" />
                             Novo Evento
