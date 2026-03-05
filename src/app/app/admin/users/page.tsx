@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import { collection, getDocs, orderBy, query, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { UserPlus, Mail, Shield, Loader2, Search } from "lucide-react";
+import { UserPlus, Mail, Shield, Loader2, Search, X, Trash2, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import { UserRole } from "@/components/AuthProvider";
 
@@ -14,6 +14,8 @@ export default function UsersAdminPage() {
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+    const [editingUser, setEditingUser] = useState<any>(null);
+    const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         async function fetchUsers() {
@@ -30,6 +32,43 @@ export default function UsersAdminPage() {
         }
         fetchUsers();
     }, []);
+
+    async function handleUpdateUser(e: React.FormEvent) {
+        e.preventDefault();
+        if (!editingUser) return;
+        setSaving(true);
+        try {
+            const userRef = doc(db, "users", editingUser.id);
+            await updateDoc(userRef, {
+                role: editingUser.role,
+                status: editingUser.status
+            });
+            // Update local state
+            setUsers(users.map(u => u.id === editingUser.id ? { ...u, role: editingUser.role, status: editingUser.status } : u));
+            setEditingUser(null);
+        } catch (err) {
+            console.error("Error updating user:", err);
+            alert("Erro ao atualizar usuário.");
+        } finally {
+            setSaving(false);
+        }
+    }
+
+    async function handleDeleteUser() {
+        if (!editingUser) return;
+        if (!confirm(`Tem certeza que deseja excluir o usuário ${editingUser.name}?`)) return;
+        setSaving(true);
+        try {
+            await deleteDoc(doc(db, "users", editingUser.id));
+            setUsers(users.filter(u => u.id !== editingUser.id));
+            setEditingUser(null);
+        } catch (err) {
+            console.error("Error deleting user:", err);
+            alert("Erro ao excluir usuário.");
+        } finally {
+            setSaving(false);
+        }
+    }
 
     const roleLabels: Record<UserRole, string> = {
         admin: "Administrador",
@@ -124,10 +163,17 @@ export default function UsersAdminPage() {
                                                 </span>
                                             </td>
                                             <td className="px-4 py-4">
-                                                <Badge variant="success">Ativo</Badge>
+                                                <Badge variant={u.status === "active" ? "success" : "warning"}>
+                                                    {u.status === "active" ? "Ativo" : (u.status === "pending" ? "Pendente" : "Inativo")}
+                                                </Badge>
                                             </td>
                                             <td className="px-4 py-4 text-right">
-                                                <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={() => setEditingUser(u)}
+                                                >
                                                     Editar
                                                 </Button>
                                             </td>
@@ -139,6 +185,85 @@ export default function UsersAdminPage() {
                     )}
                 </CardContent>
             </Card>
+
+            {/* Modal de Edição */}
+            {editingUser && (
+                <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+                    <Card className="w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200">
+                        <CardHeader className="border-b border-slate-100 pb-4 flex flex-row items-center justify-between">
+                            <CardTitle className="text-lg flex items-center gap-2">
+                                <Shield className="w-5 h-5 text-primary" />
+                                Editar Usuário
+                            </CardTitle>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setEditingUser(null)}>
+                                <X className="w-4 h-4" />
+                            </Button>
+                        </CardHeader>
+                        <CardContent className="pt-6">
+                            <form onSubmit={handleUpdateUser} className="space-y-4">
+                                <div>
+                                    <p className="text-sm font-bold text-slate-800">{editingUser.name}</p>
+                                    <p className="text-xs text-slate-500">{editingUser.email}</p>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-slate-500 uppercase">
+                                        Nível de Acesso
+                                    </label>
+                                    <select
+                                        className="w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                                        value={editingUser.role}
+                                        onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
+                                    >
+                                        <option value="professor">Professor(a)</option>
+                                        <option value="secretaria">Secretaria</option>
+                                        <option value="direcao">Direção</option>
+                                        <option value="admin">Administrador</option>
+                                        <option value="responsavel">Responsável</option>
+                                    </select>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-slate-500 uppercase">
+                                        Status
+                                    </label>
+                                    <select
+                                        className="w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                                        value={editingUser.status || "active"}
+                                        onChange={(e) => setEditingUser({ ...editingUser, status: e.target.value })}
+                                    >
+                                        <option value="active">Ativo</option>
+                                        <option value="inactive">Inativo</option>
+                                        <option value="pending">Pendente (Aguardando Registro)</option>
+                                    </select>
+                                </div>
+
+                                <div className="pt-4 flex items-center justify-between gap-3">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="text-rose-600 border-rose-200 hover:bg-rose-50"
+                                        onClick={handleDeleteUser}
+                                        disabled={saving}
+                                    >
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        Excluir
+                                    </Button>
+
+                                    <div className="flex gap-2">
+                                        <Button type="button" variant="ghost" onClick={() => setEditingUser(null)} disabled={saving}>
+                                            Cancelar
+                                        </Button>
+                                        <Button type="submit" loading={saving}>
+                                            Salvar Alterações
+                                        </Button>
+                                    </div>
+                                </div>
+                            </form>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
         </div>
     );
 }

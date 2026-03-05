@@ -27,6 +27,7 @@ export default function NewStudentPage() {
             enrollmentNumber: formData.get("enrollmentNumber") as string,
             status: "active",
             parentName: formData.get("parentName") as string,
+            parentEmail: formData.get("parentEmail") as string,
             emergencyPhone: formData.get("emergencyPhone") as string,
             birthDate: formData.get("birthDate") as string,
             address: formData.get("address") as string,
@@ -102,6 +103,7 @@ export default function NewStudentPage() {
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <Input label="Nome do Responsável" name="parentName" placeholder="Pai, Mãe ou Tutor" />
+                                <Input label="E-mail do Responsável" name="parentEmail" type="email" placeholder="responsavel@email.com" />
                             </CardContent>
                         </Card>
 

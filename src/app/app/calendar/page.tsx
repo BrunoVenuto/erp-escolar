@@ -16,7 +16,25 @@ import {
 } from "lucide-react";
 
 export default function CalendarPage() {
-    const [currentDate] = useState(new Date(2026, 2, 1)); // March 2026
+    const [viewDate, setViewDate] = useState(() => {
+        const d = new Date();
+        return new Date(d.getFullYear(), d.getMonth(), 1);
+    });
+
+    const today = new Date();
+
+    const handlePrevMonth = () => {
+        setViewDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+    };
+
+    const handleNextMonth = () => {
+        setViewDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+    };
+
+    const handleToday = () => {
+        const d = new Date();
+        setViewDate(new Date(d.getFullYear(), d.getMonth(), 1));
+    };
 
     const events = [
         { id: 1, title: "Início do 1º Bimestre", date: "02 Mar", time: "07:30", type: "academic", color: "bg-blue-500" },
@@ -29,6 +47,42 @@ export default function CalendarPage() {
         "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
         "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
     ];
+
+    const firstDayOfMonth = viewDate.getDay();
+    const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
+
+    // Create an array for the grid (7 days * 5 or 6 rows)
+    // We'll use 42 to always fit any month
+    const calendarDays = [];
+
+    // Days from previous month
+    const daysInPrevMonth = new Date(viewDate.getFullYear(), viewDate.getMonth(), 0).getDate();
+    for (let i = firstDayOfMonth - 1; i >= 0; i--) {
+        calendarDays.push({
+            day: daysInPrevMonth - i,
+            month: "prev",
+            date: new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, daysInPrevMonth - i)
+        });
+    }
+
+    // Days from current month
+    for (let i = 1; i <= daysInMonth; i++) {
+        calendarDays.push({
+            day: i,
+            month: "current",
+            date: new Date(viewDate.getFullYear(), viewDate.getMonth(), i)
+        });
+    }
+
+    // Days from next month
+    const remainingSlots = 42 - calendarDays.length;
+    for (let i = 1; i <= remainingSlots; i++) {
+        calendarDays.push({
+            day: i,
+            month: "next",
+            date: new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, i)
+        });
+    }
 
     return (
         <div className="space-y-6">
@@ -57,15 +111,15 @@ export default function CalendarPage() {
                             <div className="flex items-center gap-3">
                                 <CalendarIcon className="w-5 h-5 text-primary" />
                                 <h2 className="font-bold text-slate-700">
-                                    {monthNames[currentDate.getMonth()]} 2026
+                                    {monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}
                                 </h2>
                             </div>
                             <div className="flex items-center gap-1">
-                                <Button variant="ghost" size="sm" className="p-1 h-8 w-8">
+                                <Button variant="ghost" size="sm" className="p-1 h-8 w-8" onClick={handlePrevMonth}>
                                     <ChevronLeft className="w-4 h-4" />
                                 </Button>
-                                <Button variant="outline" size="sm" className="h-8 text-xs px-3">Hoje</Button>
-                                <Button variant="ghost" size="sm" className="p-1 h-8 w-8">
+                                <Button variant="outline" size="sm" className="h-8 text-xs px-3" onClick={handleToday}>Hoje</Button>
+                                <Button variant="ghost" size="sm" className="p-1 h-8 w-8" onClick={handleNextMonth}>
                                     <ChevronRight className="w-4 h-4" />
                                 </Button>
                             </div>
@@ -78,11 +132,16 @@ export default function CalendarPage() {
                             </div>
                         ))}
                     </div>
-                    <div className="grid grid-cols-7 grid-rows-5 h-[400px]">
-                        {Array.from({ length: 35 }).map((_, i) => {
-                            const day = i - 6; // Adjusted for March 2026 starting on Sunday
-                            const isCurrentMonth = day > 0 && day <= 31;
-                            const isToday = day === 2; // Simulating Mar 2nd
+                    <div className="grid grid-cols-7 grid-rows-6 h-[480px]">
+                        {calendarDays.map((dateObj, i) => {
+                            const isCurrentMonth = dateObj.month === "current";
+                            const isToday = today.getDate() === dateObj.day &&
+                                today.getMonth() === dateObj.date.getMonth() &&
+                                today.getFullYear() === dateObj.date.getFullYear();
+
+                            // Demo events markers (only for March 2026 as in original demo)
+                            const showMeeting = dateObj.month === "current" && dateObj.day === 15 && dateObj.date.getMonth() === 2;
+                            const showHoliday = dateObj.month === "current" && dateObj.day === 23 && dateObj.date.getMonth() === 2;
 
                             return (
                                 <div
@@ -90,12 +149,12 @@ export default function CalendarPage() {
                                     className={`border-r border-b border-slate-50 p-2 relative hover:bg-slate-50 transition-colors ${!isCurrentMonth ? "bg-slate-50/50" : ""}`}
                                 >
                                     <span className={`text-xs font-bold ${isCurrentMonth ? "text-slate-700" : "text-slate-300"} ${isToday ? "bg-primary text-white w-6 h-6 flex items-center justify-center rounded-full" : ""}`}>
-                                        {day > 0 && day <= 31 ? day : ""}
+                                        {dateObj.day}
                                     </span>
-                                    {day === 15 && (
+                                    {showMeeting && (
                                         <div className="mt-1 h-1 w-1 bg-amber-500 rounded-full mx-auto" />
                                     )}
-                                    {day === 23 && (
+                                    {showHoliday && (
                                         <div className="mt-1 h-1 w-1 bg-rose-500 rounded-full mx-auto" />
                                     )}
                                 </div>

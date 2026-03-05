@@ -14,7 +14,12 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { calculateWeightedAverage, GradeRecord, WeightConfig } from "@/lib/utils/grade-utils";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { sendReportCardEmail } from "@/lib/actions/email-actions";
 import {
+    Loader2,
+    Mail,
     ArrowLeft,
     Download,
     Printer,
@@ -37,6 +42,8 @@ export default function StudentReportCardPage({ params }: { params: Promise<{ id
     const [student, setStudent] = useState<any>(null);
     const [reports, setReports] = useState<SubjectReport[]>([]);
     const [loading, setLoading] = useState(true);
+    const [generatingPDF, setGeneratingPDF] = useState(false);
+    const [sendingEmail, setSendingEmail] = useState(false);
 
     useEffect(() => {
         async function load() {
@@ -116,6 +123,89 @@ export default function StudentReportCardPage({ params }: { params: Promise<{ id
         load();
     }, [unwrappedParams.id]);
 
+    const generatePDFDoc = (studentName: string, studentNumber: string, reportsToPrint: SubjectReport[]) => {
+        const doc = new jsPDF();
+
+        // Header
+        doc.setFontSize(20);
+        doc.text("Boletim Escolar", 14, 22);
+
+        doc.setFontSize(12);
+        doc.text(`Aluno: ${studentName}`, 14, 32);
+        doc.text(`Matrícula: ${studentNumber || 'N/A'}`, 14, 40);
+
+        const globalAvg = reportsToPrint.length
+            ? reportsToPrint.reduce((acc, r) => acc + r.average, 0) / reportsToPrint.length
+            : 0;
+
+        doc.text(`Média Global: ${globalAvg.toFixed(1)}`, 14, 48);
+
+        // Table
+        const tableColumn = ["Disciplina", "Média Final", "Status"];
+        const tableRows: any[] = [];
+
+        reportsToPrint.forEach(report => {
+            const status = report.average >= 7 ? 'Aprovado' : report.grades.length > 0 ? 'Recuperação' : 'Pendente';
+            const reportData = [
+                report.name,
+                report.average.toFixed(1),
+                status
+            ];
+            tableRows.push(reportData);
+        });
+
+        autoTable(doc, {
+            head: [tableColumn],
+            body: tableRows,
+            startY: 55,
+        });
+
+        return doc;
+    };
+
+    const handleDownloadPDF = () => {
+        if (!student) return;
+        setGeneratingPDF(true);
+        try {
+            const doc = generatePDFDoc(student.name, student.enrollmentNumber, reports);
+            doc.save(`boletim-${student.name.toLowerCase().replace(/\s+/g, '-')}.pdf`);
+        } catch (error) {
+            console.error("Erro ao gerar PDF:", error);
+            alert("Erro ao gerar PDF do boletim.");
+        } finally {
+            setGeneratingPDF(false);
+        }
+    };
+
+    const handleEmailGuardian = async () => {
+        if (!student) return;
+        if (!student.parentEmail) {
+            alert("O aluno não possui um e-mail de responsável cadastrado.");
+            return;
+        }
+
+        setSendingEmail(true);
+        try {
+            const result = await sendReportCardEmail({
+                studentName: student.name,
+                parentEmail: student.parentEmail,
+                parentName: student.parentName,
+                globalAverage: (reports.reduce((acc, r) => acc + r.average, 0) / (reports.length || 1)).toFixed(1)
+            });
+
+            if (result.success) {
+                alert(`Boletim enviado com sucesso para ${student.parentEmail}!`);
+            } else {
+                throw new Error(result.error || "Erro desconhecido");
+            }
+        } catch (error: any) {
+            console.error("Erro ao enviar e-mail:", error);
+            alert(`Erro ao enviar e-mail: ${error.message}`);
+        } finally {
+            setSendingEmail(false);
+        }
+    };
+
     if (loading) return <div className="p-8 text-center animate-pulse">Gerando boletim escolar...</div>;
 
     return (
@@ -134,9 +224,13 @@ export default function StudentReportCardPage({ params }: { params: Promise<{ id
                         <Printer className="w-4 h-4" />
                         Imprimir
                     </Button>
-                    <Button size="sm" className="gap-2">
-                        <Download className="w-4 h-4" />
-                        PDF
+                    <Button variant="outline" size="sm" className="gap-2 text-primary border-primary hover:bg-primary/5" onClick={handleEmailGuardian} disabled={sendingEmail || !student?.parentEmail}>
+                        {sendingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+                        {student?.parentEmail ? "Enviar E-mail" : "Sem E-mail"}
+                    </Button>
+                    <Button size="sm" className="gap-2 shadow-sm" onClick={handleDownloadPDF} disabled={generatingPDF}>
+                        {generatingPDF ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                        Baixar PDF
                     </Button>
                 </div>
             </div>

@@ -27,6 +27,7 @@ export default function SettingsPage() {
     const [editingName, setEditingName] = useState(false);
     const [newName, setNewName] = useState("");
     const [saving, setSaving] = useState(false);
+    const [savedMessage, setSavedMessage] = useState("");
 
     // Initialize state from profile
     useEffect(() => {
@@ -74,6 +75,8 @@ export default function SettingsPage() {
             await updateDoc(doc(db, "users", profile.uid), {
                 [`preferences.notifications.${key}`]: value
             });
+            setSavedMessage("Preferência salva!");
+            setTimeout(() => setSavedMessage(""), 2000);
         } catch (err) {
             console.error(err);
         }
@@ -89,14 +92,21 @@ export default function SettingsPage() {
                     </h1>
                     <p className="text-sm text-slate-500 dark:text-slate-400">Gerencie sua conta e preferências globais do ERP.</p>
                 </div>
-                <Button
-                    variant="ghost"
-                    className="text-rose-600 hover:bg-rose-50 gap-2 font-bold"
-                    onClick={() => auth.signOut()}
-                >
-                    <LogOut className="w-4 h-4" />
-                    Sair da Conta
-                </Button>
+                <div className="flex items-center gap-4">
+                    {savedMessage && (
+                        <span className="text-sm font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg animate-in fade-in duration-300">
+                            {savedMessage}
+                        </span>
+                    )}
+                    <Button
+                        variant="ghost"
+                        className="text-rose-600 hover:bg-rose-50 gap-2 font-bold"
+                        onClick={() => auth.signOut()}
+                    >
+                        <LogOut className="w-4 h-4" />
+                        Sair da Conta
+                    </Button>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

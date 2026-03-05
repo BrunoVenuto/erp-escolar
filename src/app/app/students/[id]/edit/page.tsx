@@ -52,6 +52,7 @@ export default function EditStudentPage({ params }: { params: Promise<{ id: stri
             email: formData.get("email") as string,
             enrollmentNumber: formData.get("enrollmentNumber") as string,
             parentName: formData.get("parentName") as string,
+            parentEmail: formData.get("parentEmail") as string,
             emergencyPhone: formData.get("emergencyPhone") as string,
             birthDate: formData.get("birthDate") as string,
             address: formData.get("address") as string,
@@ -189,6 +190,13 @@ export default function EditStudentPage({ params }: { params: Promise<{ id: stri
                                     name="parentName"
                                     defaultValue={studentData?.parentName}
                                     placeholder="Pai, Mãe ou Tutor"
+                                />
+                                <Input
+                                    label="E-mail do Responsável"
+                                    name="parentEmail"
+                                    type="email"
+                                    defaultValue={studentData?.parentEmail}
+                                    placeholder="responsavel@email.com"
                                 />
                             </CardContent>
                         </Card>
